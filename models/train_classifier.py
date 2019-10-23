@@ -35,7 +35,7 @@ def tokenize(text):
     words = word_tokenize(text)
     words = [w for w in words if w not in stopwords.words('english')]
     lemmatizer = WordNetLemmatizer()
-    
+
     cleaned_words = []
     for word in words:
         clean_word = lemmatizer.lemmatize(word).strip()
@@ -49,8 +49,10 @@ def build_model():
                     ('tfidf', TfidfTransformer()),
                     ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
-    
-    parameters = {'clf__estimator__min_samples_leaf':[1, 5, 10]}
+
+    parameters = {'clf__estimator__max_depth': [2, None],
+                  'clf__estimator__n_estimators': [10, 50]
+                 }
     model = GridSearchCV(pipeline, param_grid=parameters)
     return model
 
@@ -72,15 +74,15 @@ def main():
         print('Loading data...\n    DATABASE: {}'.format(database_filepath))
         X, Y, category_names = load_data(database_filepath)
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2)
-        
+
         print('Building model...')
         model = build_model()
-        
+
         print('Training model...')
         from workspace_utils import active_session
         with active_session():
             model.fit(X_train, Y_train)
-        
+
         print('Evaluating model...')
         evaluate_model(model, X_test, Y_test, category_names)
 
