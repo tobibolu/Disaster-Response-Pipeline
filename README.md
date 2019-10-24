@@ -1,7 +1,7 @@
 # Disaster Response Pipeline Project
 
 ## Project Summary:
-    This goal of this project is to create a machine learning pipeline that categorises emergency messages based on the needs communicated by the sender.
+This goal of this project is to create a machine learning pipeline that categorises emergency messages based on the needs communicated by the sender.
 
 ### Files:
 1. process_data.py - Processes message & category data from CSV files and loans the data into a sqlite database
