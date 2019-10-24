@@ -23,6 +23,14 @@ from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
 
 def load_data(database_filepath):
+    '''
+    INPUT:
+    database_filepath - saved database from process_data.py
+    OUTPUT:
+    X - Dataframe of messages column
+    Y - Dataframe of all different categories
+    category_names - Column names of Y Dataframe
+    '''
     engine = create_engine('sqlite:///'+database_filepath)
     df = pd.read_sql_table('ETL', engine)
     X = df['message']
@@ -31,25 +39,48 @@ def load_data(database_filepath):
     return X, Y, category_names
 
 def tokenize(text):
+    '''
+    INPUT:
+    text - sentence to be analysed
+    OUTPUT:
+    cleaned_words - Normalized text
+    '''
+
+    #Remove punctuatuations and convert to lowercase
     text = re.sub(r"[^a-zA-Z0-9]", ' ', text.lower())
+
+    #Split text into words
     words = word_tokenize(text)
+
+    #Remove Stop Words
     words = [w for w in words if w not in stopwords.words('english')]
     lemmatizer = WordNetLemmatizer()
 
     cleaned_words = []
     for word in words:
+        #lemmatize words
         clean_word = lemmatizer.lemmatize(word).strip()
         cleaned_words.append(clean_word)
     return cleaned_words
 
 
 def build_model():
+    '''
+    INPUT:
+    None
+    OUTPUT:
+    model - machine learning pipeline for text
+    '''
+
+    #Transform Data with CountVectorizer and TfidfTransformer
+    #Fit Classifier
     pipeline = Pipeline([
                     ('vect', CountVectorizer(tokenizer=tokenize)),
                     ('tfidf', TfidfTransformer()),
                     ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
 
+    #Modify Pipeline with GridSearch to choose optimal parameters
     parameters = {'clf__estimator__max_depth': [2, None],
                   'clf__estimator__n_estimators': [10, 50]
                  }
@@ -58,12 +89,24 @@ def build_model():
 
 
 def evaluate_model(model, X_test, Y_test, category_names):
+    '''
+    INPUT:
+    model - machine learning model
+    X_test - Test data set
+    Y_test - Set of labels to data in X_test
+    category_names - Column names for Y dataframe 
+    '''
     Y_pred = model.predict(X_test)
     print(classification_report(Y_test.iloc[:,1:].values, np.array([x[1:] for x in Y_pred]),         target_names=category_names))
     pass
 
 
 def save_model(model, model_filepath):
+    '''
+    INPUT:
+    model - machine learning model
+    model_filepath - filepath to save model to
+    '''
     pickle.dump(model, open(model_filepath, "wb"))
 
 
