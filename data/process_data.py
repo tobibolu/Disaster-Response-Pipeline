@@ -17,7 +17,7 @@ def load_data(messages_filepath, categories_filepath):
     categories = pd.read_csv(categories_filepath)
     categories.head()
 
-    #Merge Datasets into one dataframe
+    #Merging Datasets into one dataframe
     df = messages.merge(categories, how = 'outer', on = 'id')
     return df
 
@@ -28,10 +28,10 @@ def clean_data(df):
     OUTPUT:
     df - cleaned dataframe with new category columns
     '''
-    #Create Dataframe of 36 individual category columns
+    #Creating Dataframe of 36 individual category columns
     categories = df.categories.str.split(';', expand = True)
 
-    #Extract list of new column names for categories
+    #Extracting list of new column names for categories
     row = categories.iloc[0,:]
     category_colnames = row.apply(lambda x : x[:-2])
     categories.columns = category_colnames
@@ -41,11 +41,11 @@ def clean_data(df):
         categories[column] = categories[column].str[-1]
         categories[column] = categories[column].astype(int)
 
-    #Replace categories column in df with new categories
+    #Replacing categories column in df with new categories
     df = df.drop('categories', axis=1)
     df = pd.concat([df, categories],axis=1)
 
-    #Remove Duplicates
+    #Removing Duplicates
     df = df.drop_duplicates()
     return df
 

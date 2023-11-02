@@ -46,13 +46,13 @@ def tokenize(text):
     cleaned_words - Normalized text
     '''
 
-    #Remove punctuatuations and convert to lowercase
+    #Removing punctuatuations and converting to lowercase
     text = re.sub(r"[^a-zA-Z0-9]", ' ', text.lower())
 
-    #Split text into words
+    #Splitting text into words
     words = word_tokenize(text)
 
-    #Remove Stop Words
+    #Removing Stop Words
     words = [w for w in words if w not in stopwords.words('english')]
     lemmatizer = WordNetLemmatizer()
 
@@ -72,15 +72,14 @@ def build_model():
     model - machine learning pipeline for text
     '''
 
-    #Transform Data with CountVectorizer and TfidfTransformer
-    #Fit Classifier
+    #Transforming Data and fitting classifier
     pipeline = Pipeline([
                     ('vect', CountVectorizer(tokenizer=tokenize)),
                     ('tfidf', TfidfTransformer()),
                     ('clf', MultiOutputClassifier(RandomForestClassifier()))
     ])
 
-    #Modify Pipeline with GridSearch to choose optimal parameters
+    #Modifying Pipeline with GridSearch to choose optimal parameters
     parameters = {'clf__estimator__max_depth': [2, None],
                   'clf__estimator__n_estimators': [10, 50]
                  }
