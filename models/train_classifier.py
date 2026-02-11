@@ -94,7 +94,7 @@ def evaluate_model(model, X_test, Y_test, category_names):
     model - machine learning model
     X_test - Test data set
     Y_test - Set of labels to data in X_test
-    category_names - Column names for Y dataframe 
+    category_names - Column names for Y dataframe
     '''
     Y_pred = model.predict(X_test)
     print(classification_report(Y_test.iloc[:,1:].values, np.array([x[1:] for x in Y_pred]),         target_names=category_names))
