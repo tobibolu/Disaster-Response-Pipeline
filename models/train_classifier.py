@@ -51,12 +51,12 @@ def build_model() -> GridSearchCV:
     pipeline = Pipeline([
         ('vect', CountVectorizer(tokenizer=tokenize)),
         ('tfidf', TfidfTransformer()),
-        ('clf', MultiOutputClassifier(RandomForestClassifier(n_jobs=-1)))
+        ('clf', MultiOutputClassifier(RandomForestClassifier(n_jobs=1)))
     ])
 
     parameters = {
-        'clf__estimator__max_depth': [2, None],
-        'clf__estimator__n_estimators': [10, 50]
+        'clf__estimator__max_depth': [5, 10],
+        'clf__estimator__n_estimators': [10, 25]
     }
 
     model = GridSearchCV(pipeline, param_grid=parameters, scoring='f1_weighted',
@@ -83,12 +83,14 @@ def evaluate_model(model: GridSearchCV, X_test: pd.Series,
 def save_model(model: GridSearchCV, model_filepath: str) -> None:
     """Save trained model to a pickle file.
 
+    Only saves the best estimator to minimize file size and memory usage.
+
     Args:
-        model: Trained model to save.
+        model: Trained GridSearchCV model.
         model_filepath: Destination file path.
     """
     with open(model_filepath, 'wb') as f:
-        pickle.dump(model, f)
+        pickle.dump(model.best_estimator_, f)
 
 
 def main() -> None:

@@ -133,7 +133,8 @@ def go():
 def main() -> None:
     """Start the Flask web server."""
     debug = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
-    app.run(host='0.0.0.0', port=3001, debug=debug)
+    port = int(os.environ.get('PORT', 3001))
+    app.run(host='0.0.0.0', port=port, debug=debug)
 
 
 if __name__ == '__main__':

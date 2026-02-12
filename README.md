@@ -1,6 +1,7 @@
 # Disaster Response Pipeline
 
-![Python](https://img.shields.io/badge/Python-3.8%2B-blue?logo=python&logoColor=white)
+![Python](https://img.shields.io/badge/Python-3.9%2B-blue?logo=python&logoColor=white)
+![Docker](https://img.shields.io/badge/Docker-Supported-2496ED?logo=docker&logoColor=white)
 ![Flask](https://img.shields.io/badge/Flask-Web_App-lightgrey?logo=flask)
 ![scikit-learn](https://img.shields.io/badge/scikit--learn-ML_Pipeline-orange?logo=scikit-learn)
 ![License](https://img.shields.io/badge/License-MIT-green)
@@ -29,19 +30,23 @@ Disaster-Response-Pipeline/
 │       ├── master.html                 # Main page template
 │       └── go.html                     # Classification results template
 ├── data/
-│   ├── disaster_messages.csv           # Raw messages dataset (26,249 rows)
-│   ├── disaster_categories.csv         # Raw categories dataset (26,249 rows)
+│   ├── disaster_messages.csv           # Raw messages dataset (26,248 rows)
+│   ├── disaster_categories.csv         # Raw categories dataset (26,248 rows)
 │   └── process_data.py                 # ETL pipeline script
 ├── models/
 │   └── train_classifier.py             # ML pipeline script
 ├── tests/
 │   ├── test_process_data.py            # ETL pipeline tests
-│   └── test_train_classifier.py        # ML pipeline tests
+│   └── test_train_classifier.py        # Tokenizer and utility tests
 ├── notebooks/
 │   ├── ETL Pipeline Preparation.ipynb  # ETL development notebook
 │   └── ML Pipeline Preparation.ipynb   # ML development notebook
 ├── utils.py                            # Shared tokenizer module
 ├── requirements.txt                    # Python dependencies
+├── Dockerfile                          # Multi-stage Docker build
+├── docker-compose.yml                  # One-command Docker setup
+├── .gitignore
+├── .github/workflows/ci.yml            # Automated testing (Python 3.9/3.10/3.11)
 ├── LICENSE                             # MIT License
 └── README.md
 ```
@@ -74,7 +79,7 @@ The project follows a three-stage pipeline:
 ## Installation
 
 ### Prerequisites
-- Python 3.8 or higher
+- Python 3.9 or higher (or Docker)
 - pip
 
 ### Setup
@@ -109,6 +114,18 @@ python app/run.py
 
 6. Open your browser and go to `http://localhost:3001/`
 
+### Docker (Alternative)
+
+Run the entire pipeline and web app with one command:
+
+```bash
+docker-compose up --build
+```
+
+This builds the database, trains the model, and starts the Flask server. Open `http://localhost:3001/` when the build completes.
+
+> **Note:** The initial Docker build takes 15-30 minutes due to model training. Subsequent runs use cached layers.
+
 ## The 36 Categories
 
 Messages are classified across these emergency response categories:
@@ -127,7 +144,7 @@ Messages are classified across these emergency response categories:
 
 ## Dataset
 
-The dataset is provided by [Appen](https://appen.com/) (formerly Figure Eight) and contains 26,249 real disaster response messages collected from multiple sources. Each message is labeled across 36 categories.
+The dataset is provided by [Appen](https://appen.com/) (formerly Figure Eight) and contains 26,248 real disaster response messages collected from multiple sources. Each message is labeled across 36 categories.
 
 - **Messages:** Real messages sent during disaster events
 - **Genres:** Direct messages, news articles, and social media posts
