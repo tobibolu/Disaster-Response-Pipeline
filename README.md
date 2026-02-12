@@ -171,12 +171,6 @@ python -m pytest tests/ -v
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## Live Dashboard
-
-> Interactive Tableau Public dashboard: _Coming soon_
->
-> To set up: Upload the dataset to [Tableau Public](https://public.tableau.com), build your visualizations, publish, and replace this link.
-
 ## Acknowledgements
 
 - [Udacity](https://www.udacity.com/) Data Science Nanodegree for the project framework
