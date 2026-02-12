@@ -49,14 +49,14 @@ def build_model() -> GridSearchCV:
         GridSearchCV model wrapping a CountVectorizer -> TF-IDF -> RandomForest pipeline.
     """
     pipeline = Pipeline([
-        ('vect', CountVectorizer(tokenizer=tokenize)),
+        ('vect', CountVectorizer(tokenizer=tokenize, max_features=10000)),
         ('tfidf', TfidfTransformer()),
         ('clf', MultiOutputClassifier(RandomForestClassifier(n_jobs=1)))
     ])
 
     parameters = {
-        'clf__estimator__max_depth': [5, 10],
-        'clf__estimator__n_estimators': [10, 25]
+        'clf__estimator__max_depth': [None],
+        'clf__estimator__n_estimators': [10, 20]
     }
 
     model = GridSearchCV(pipeline, param_grid=parameters, scoring='f1_weighted',
