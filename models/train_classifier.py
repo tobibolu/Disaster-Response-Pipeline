@@ -16,7 +16,7 @@ from sqlalchemy import create_engine
 from sklearn.model_selection import train_test_split, GridSearchCV
 from sklearn.pipeline import Pipeline
 from sklearn.multioutput import MultiOutputClassifier
-from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import SGDClassifier
 from sklearn.metrics import classification_report
 from sklearn.feature_extraction.text import CountVectorizer, TfidfTransformer
 
@@ -28,6 +28,10 @@ from utils import tokenize
 def load_data(database_filepath: str) -> Tuple[pd.Series, pd.DataFrame, List[str]]:
     """Load data from SQLite database.
 
+    Drops any category columns that contain only a single class (e.g.
+    'child_alone' which has zero positive examples), since classifiers
+    require at least two classes to train on.
+
     Args:
         database_filepath: Path to the SQLite database file.
 
@@ -38,6 +42,13 @@ def load_data(database_filepath: str) -> Tuple[pd.Series, pd.DataFrame, List[str
     df = pd.read_sql_table('ETL', engine)
     X = df['message']
     Y = df.iloc[:, 4:]
+
+    # Drop columns with only one unique value (can't train a classifier on them)
+    single_class_cols = [col for col in Y.columns if Y[col].nunique() < 2]
+    if single_class_cols:
+        print(f'  Dropping single-class columns: {single_class_cols}')
+        Y = Y.drop(columns=single_class_cols)
+
     category_names = Y.columns.tolist()
     return X, Y, category_names
 
@@ -45,18 +56,26 @@ def load_data(database_filepath: str) -> Tuple[pd.Series, pd.DataFrame, List[str
 def build_model() -> GridSearchCV:
     """Build a text classification pipeline with GridSearchCV.
 
+    Uses SGDClassifier with log loss (logistic regression) instead of
+    RandomForest. SGD handles class imbalance better via class_weight='balanced',
+    trains significantly faster on text data, and produces smaller model files.
+
     Returns:
-        GridSearchCV model wrapping a CountVectorizer -> TF-IDF -> RandomForest pipeline.
+        GridSearchCV model wrapping a CountVectorizer -> TF-IDF -> SGD pipeline.
     """
     pipeline = Pipeline([
-        ('vect', CountVectorizer(tokenizer=tokenize, max_features=10000)),
-        ('tfidf', TfidfTransformer()),
-        ('clf', MultiOutputClassifier(RandomForestClassifier(n_jobs=1)))
+        ('vect', CountVectorizer(tokenizer=tokenize, max_features=15000)),
+        ('tfidf', TfidfTransformer(sublinear_tf=True)),
+        ('clf', MultiOutputClassifier(
+            SGDClassifier(loss='log_loss', class_weight='balanced',
+                          random_state=42, n_jobs=1)
+        ))
     ])
 
     parameters = {
-        'clf__estimator__max_depth': [None],
-        'clf__estimator__n_estimators': [10, 20]
+        'clf__estimator__alpha': [1e-4, 1e-3],
+        'clf__estimator__max_iter': [1000],
+        'tfidf__use_idf': [True],
     }
 
     model = GridSearchCV(pipeline, param_grid=parameters, scoring='f1_weighted',
@@ -66,7 +85,7 @@ def build_model() -> GridSearchCV:
 
 def evaluate_model(model: GridSearchCV, X_test: pd.Series,
                    Y_test: pd.DataFrame, category_names: List[str]) -> None:
-    """Print classification report for the model on test data.
+    """Print classification report for each category and overall.
 
     Args:
         model: Trained model.
@@ -75,6 +94,16 @@ def evaluate_model(model: GridSearchCV, X_test: pd.Series,
         category_names: Names of the 36 category columns.
     """
     Y_pred = model.predict(X_test)
+
+    print('\n--- Per-Category Results ---')
+    for i, category in enumerate(category_names):
+        print(f'\n{category}:')
+        print(classification_report(
+            Y_test.values[:, i], Y_pred[:, i],
+            target_names=['no', 'yes'], zero_division=0
+        ))
+
+    print('\n--- Overall Results ---')
     print(classification_report(
         Y_test.values, Y_pred, target_names=category_names, zero_division=0
     ))

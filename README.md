@@ -64,9 +64,11 @@ The project follows a three-stage pipeline:
 ### 2. ML Pipeline (`models/train_classifier.py`)
 - Loads cleaned data from the SQLite database
 - Tokenizes text using a shared NLP pipeline (lowercase, remove punctuation, remove stopwords, lemmatize)
-- Builds a multi-output classification pipeline: `CountVectorizer` → `TF-IDF` → `RandomForestClassifier`
-- Optimizes hyperparameters with `GridSearchCV` (scored on weighted F1)
-- Evaluates on test data and saves the trained model
+- Drops single-class categories (e.g. `child_alone` with zero positive examples)
+- Builds a multi-output classification pipeline: `CountVectorizer` → `TF-IDF` → `SGDClassifier` (logistic regression)
+- Uses `class_weight='balanced'` to handle severe class imbalance in rare categories
+- Optimizes regularization strength with `GridSearchCV` (scored on weighted F1)
+- Evaluates per-category and overall metrics on held-out test data, then saves the trained model
 
 ### 3. Web Application (`app/run.py`)
 - Flask app with 4 interactive Plotly visualizations:
@@ -105,7 +107,7 @@ python data/process_data.py data/disaster_messages.csv data/disaster_categories.
 python models/train_classifier.py data/DisasterResponse.db models/classifier.pkl
 ```
 
-> **Note:** Training may take 15-30 minutes depending on your hardware.
+> **Note:** Training typically takes 5-10 minutes depending on your hardware.
 
 5. Start the web application:
 ```bash
@@ -124,7 +126,7 @@ docker-compose up --build
 
 This builds the database, trains the model, and starts the Flask server. Open `http://localhost:3001/` when the build completes.
 
-> **Note:** The initial Docker build takes 15-30 minutes due to model training. Subsequent runs use cached layers.
+> **Note:** The initial Docker build takes 5-15 minutes due to model training. Subsequent runs use cached layers.
 
 ## The 36 Categories
 
@@ -134,13 +136,33 @@ Messages are classified across these emergency response categories:
 |---|---|---|---|
 | Related | Request | Offer | Aid Related |
 | Medical Help | Medical Products | Search And Rescue | Security |
-| Military | Child Alone | Water | Food |
+| Military | Child Alone* | Water | Food |
 | Shelter | Clothing | Money | Missing People |
 | Refugees | Death | Other Aid | Infrastructure Related |
 | Transport | Buildings | Electricity | Tools |
 | Hospitals | Shops | Aid Centers | Other Infrastructure |
 | Weather Related | Floods | Storm | Fire |
 | Earthquake | Cold | Other Weather | Direct Report |
+
+*\*`child_alone` has zero positive examples in the dataset and is excluded from model training.*
+
+## Model Performance
+
+The SGDClassifier with `class_weight='balanced'` achieves strong recall across categories, prioritizing correct detection of emergency needs over precision — in a disaster scenario, it's better to flag a message that might not need help than to miss one that does.
+
+| Category | Precision | Recall | F1-Score |
+|---|---|---|---|
+| Earthquake | 0.83 | 0.85 | 0.84 |
+| Weather Related | 0.77 | 0.81 | 0.79 |
+| Food | 0.74 | 0.87 | 0.80 |
+| Storm | 0.62 | 0.85 | 0.72 |
+| Water | 0.57 | 0.87 | 0.69 |
+| Shelter | 0.55 | 0.78 | 0.64 |
+| Request | 0.63 | 0.75 | 0.68 |
+| Direct Report | 0.54 | 0.69 | 0.61 |
+| **Weighted Avg** | **0.63** | **0.73** | **0.66** |
+
+> **Note:** The model uses TF-IDF features, which excel at matching explicit keyword mentions but have limited ability to infer meaning from indirect language. For example, "we need water" is classified accurately, while "the pipes burst and we have nothing to drink" may not trigger the water category.
 
 ## Dataset
 
@@ -154,7 +176,7 @@ The dataset is provided by [Appen](https://appen.com/) (formerly Figure Eight) a
 
 - **Python** - Core language
 - **pandas / NumPy** - Data manipulation
-- **scikit-learn** - Machine learning pipeline, GridSearchCV, classification
+- **scikit-learn** - Machine learning pipeline (SGDClassifier, GridSearchCV, MultiOutputClassifier)
 - **NLTK** - Natural language processing (tokenization, lemmatization, stopwords)
 - **Flask** - Web application framework
 - **Plotly** - Interactive data visualizations
@@ -173,5 +195,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## Acknowledgements
 
-- [Udacity](https://www.udacity.com/) Data Science Nanodegree for the project framework
 - [Appen](https://appen.com/) for providing the disaster response dataset

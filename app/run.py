@@ -31,6 +31,11 @@ df = pd.read_sql_table('ETL', engine)
 
 model = joblib.load(MODEL_PATH)
 
+# Get the category names the model was actually trained on (excludes
+# single-class columns like 'child_alone' that were dropped during training)
+all_category_columns = df.columns[4:]
+trained_categories = [col for col in all_category_columns if df[col].nunique() >= 2]
+
 
 @app.route('/')
 @app.route('/index')
@@ -121,7 +126,16 @@ def go():
     """Handle user query and display classification results."""
     query = request.args.get('query', '')
     classification_labels = model.predict([query])[0]
-    classification_results = dict(zip(df.columns[4:], classification_labels))
+
+    # Map predictions to the trained categories, and default dropped
+    # categories (e.g. child_alone) to 0
+    classification_results = {}
+    for col in all_category_columns:
+        if col in trained_categories:
+            idx = trained_categories.index(col)
+            classification_results[col] = classification_labels[idx]
+        else:
+            classification_results[col] = 0
 
     return render_template(
         'go.html',
