@@ -1,0 +1,16 @@
+.git
+.gitignore
+.github
+.ipynb_checkpoints
+__pycache__
+*.pyc
+*.db
+*.pkl
+*.ipynb
+notebooks/
+tests/
+README.md
+LICENSE
+.dockerignore
+Dockerfile
+docker-compose.yml

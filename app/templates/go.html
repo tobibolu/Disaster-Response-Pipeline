@@ -1,0 +1,31 @@
+{% extends "master.html" %}
+{% block title %}Results{% endblock %}
+
+{% block message %}
+    <hr />
+    <h4 class="text-center">MESSAGE</h4>
+    <p class="text-center"><i>{{query}}</i></p>
+{% endblock %}
+
+{% block content %}
+    <div class="page-header">
+        <h1 class="text-center">Classification Results</h1>
+    </div>
+    <div class="row">
+        <div class="col-lg-8 col-lg-offset-2">
+            <ul class="list-group">
+                {% for category, classification in classification_result.items() %}
+                    {% if classification == 1 %}
+                        <li class="list-group-item list-group-item-success text-center">
+                            <strong>{{category.replace('_', ' ').title()}}</strong>
+                        </li>
+                    {% else %}
+                        <li class="list-group-item text-center" style="color: #999;">
+                            {{category.replace('_', ' ').title()}}
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock %}
