@@ -64,6 +64,7 @@ The project follows a three-stage pipeline:
 ### 2. ML Pipeline (`models/train_classifier.py`)
 - Loads cleaned data from the SQLite database
 - Tokenizes text using a shared NLP pipeline (lowercase, remove punctuation, remove stopwords, lemmatize)
+- NLTK resources are initialized lazily at runtime (no import-time downloads), making module imports safer in restricted/offline environments
 - Drops single-class categories (e.g. `child_alone` with zero positive examples)
 - Builds a multi-output classification pipeline: `CountVectorizer` → `TF-IDF` → `SGDClassifier` (logistic regression)
 - Uses `class_weight='balanced'` to handle severe class imbalance in rare categories

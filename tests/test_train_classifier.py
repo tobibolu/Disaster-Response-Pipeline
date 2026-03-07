@@ -1,5 +1,6 @@
 """Tests for the ML pipeline (models/train_classifier.py) and shared utilities."""
 
+import importlib
 import os
 import sys
 
@@ -8,11 +9,24 @@ import pytest
 # Add project root to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
+import utils
 from utils import tokenize
 
 
 class TestTokenize:
     """Tests for the shared tokenize function."""
+
+    def test_module_import_has_no_download_side_effects(self, monkeypatch):
+        """Importing utils should not trigger network/resource downloads."""
+        called = []
+
+        def _record_download(*args, **kwargs):
+            called.append(args[0] if args else kwargs.get("resource"))
+            return True
+
+        monkeypatch.setattr("nltk.download", _record_download)
+        importlib.reload(utils)
+        assert called == []
 
     def test_basic_tokenization(self):
         """Test that tokenize returns a list of tokens."""
