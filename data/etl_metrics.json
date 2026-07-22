@@ -1,0 +1,14 @@
+{
+  "source_message_rows": 26248,
+  "source_category_rows": 26248,
+  "source_unique_ids": 26180,
+  "repeated_message_rows": 68,
+  "repeated_category_rows": 68,
+  "ids_with_multiple_distinct_annotations": 36,
+  "duplicate_annotation_policy": "positive_union_by_message_id",
+  "excluded_non_messages": 6,
+  "clean_rows": 26174,
+  "clean_unique_ids": 26174,
+  "clean_duplicate_ids": 0,
+  "category_columns": 36
+}

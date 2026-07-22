@@ -1,9 +1,8 @@
 """Tests for the ETL pipeline (data/process_data.py)."""
 
+import json
 import os
 import sys
-import tempfile
-
 import pandas as pd
 import pytest
 
@@ -11,7 +10,7 @@ import pytest
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..', 'data'))
 
-from data.process_data import load_data, clean_data, save_data
+from data.process_data import clean_data, load_data, save_data, save_etl_report
 
 
 @pytest.fixture
@@ -81,6 +80,52 @@ def test_clean_data_removes_duplicates(sample_csv_files):
     assert len(df_clean) == 3
 
 
+def test_clean_data_unions_conflicting_duplicate_annotations(sample_csv_files):
+    """A positive duplicate annotation is retained without duplicating a message."""
+    messages_path, categories_path = sample_csv_files
+    df = load_data(messages_path, categories_path)
+    conflict = df.iloc[[1]].copy()
+    conflict['categories'] = 'related-1;request-1;offer-0'
+
+    df_clean = clean_data(pd.concat([df, conflict], ignore_index=True))
+
+    assert len(df_clean) == 3
+    message_two = df_clean.loc[df_clean['id'].eq(2)].iloc[0]
+    assert message_two['request'] == 1
+
+
+def test_load_data_rejects_unmatched_ids(sample_csv_files):
+    """A silent outer join must not manufacture partially labelled rows."""
+    messages_path, categories_path = sample_csv_files
+    categories = pd.read_csv(categories_path)
+    categories.loc[len(categories)] = {
+        'id': 999,
+        'categories': 'related-1;request-0;offer-0',
+    }
+    categories.to_csv(categories_path, index=False)
+
+    with pytest.raises(ValueError, match='IDs do not match'):
+        load_data(messages_path, categories_path)
+
+
+def test_clean_data_drops_non_message_placeholders():
+    """Spreadsheet error tokens are not useful NLP examples."""
+    merged = pd.DataFrame({
+        'id': [1, 2],
+        'message': ['#NAME?', 'Need clean water'],
+        'original': [None, None],
+        'genre': ['news', 'direct'],
+        'categories': [
+            'related-0;request-0',
+            'related-1;request-1',
+        ],
+    })
+
+    cleaned = clean_data(merged)
+
+    assert cleaned['id'].tolist() == [2]
+
+
 def test_save_data(sample_csv_files, tmp_path):
     """Test that save_data creates a valid SQLite database."""
     messages_path, categories_path = sample_csv_files
@@ -107,3 +152,17 @@ def test_save_data_replace(sample_csv_files, tmp_path):
     save_data(df_clean, db_path)
     # Running again should not crash (if_exists='replace')
     save_data(df_clean, db_path)
+
+
+def test_etl_report_records_duplicate_policy(sample_csv_files, tmp_path):
+    """The generated evidence should preserve the ETL claim boundary."""
+    messages_path, categories_path = sample_csv_files
+    merged = load_data(messages_path, categories_path)
+    cleaned = clean_data(merged)
+
+    report_path = save_etl_report(cleaned, str(tmp_path / 'test.db'))
+    report = json.loads(report_path.read_text())
+
+    assert report['duplicate_annotation_policy'] == 'positive_union_by_message_id'
+    assert report['clean_rows'] == 3
+    assert report['clean_duplicate_ids'] == 0

@@ -4,6 +4,8 @@ import importlib
 import os
 import sys
 
+import numpy as np
+import pandas as pd
 import pytest
 
 # Add project root to path
@@ -11,6 +13,7 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
 import utils
 from utils import tokenize
+from models.train_classifier import build_model, split_data
 
 
 class TestTokenize:
@@ -54,8 +57,8 @@ class TestTokenize:
         assert 'is' not in result
         assert 'a' not in result
 
-    def test_lemmatization(self):
-        """Test that words are lemmatized."""
+    def test_stemming(self):
+        """Test that inflected words are reduced to a stable stem."""
         result = tokenize("The dogs were running quickly")
         assert 'dog' in result
 
@@ -71,3 +74,27 @@ class TestTokenize:
         assert 'need' in result
         assert 'water' in result
         assert 'food' in result
+
+
+def test_build_model_uses_multilabel_stratified_cross_validation():
+    """Grid search should balance rare labels across its folds."""
+    model = build_model()
+
+    assert model.cv.__class__.__name__ == 'MultilabelStratifiedKFold'
+    assert model.estimator.named_steps['vect'].token_pattern is None
+
+
+def test_split_data_is_disjoint_and_preserves_rare_labels():
+    """Every row appears once and both partitions retain each label."""
+    X = pd.Series([f'message {index}' for index in range(20)])
+    Y = pd.DataFrame({
+        'related': [1] * 10 + [0] * 10,
+        'water': [1 if index % 5 == 0 else 0 for index in range(20)],
+    })
+
+    X_train, X_test, Y_train, Y_test = split_data(X, Y, test_size=0.25)
+
+    assert set(X_train.index).isdisjoint(X_test.index)
+    assert sorted([*X_train.index, *X_test.index]) == list(range(20))
+    assert np.all(Y_train.sum(axis=0).gt(0))
+    assert np.all(Y_test.sum(axis=0).gt(0))

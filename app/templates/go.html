@@ -3,6 +3,9 @@
 
 {% block message %}
     <hr />
+    {% if message_error %}
+        <div class="alert alert-warning text-center" role="alert">{{message_error}}</div>
+    {% endif %}
     <h4 class="text-center">MESSAGE</h4>
     <p class="text-center"><i>{{query}}</i></p>
 {% endblock %}
