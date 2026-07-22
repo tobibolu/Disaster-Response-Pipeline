@@ -3,33 +3,28 @@
 import re
 from typing import List
 
-import nltk
-from nltk.corpus import stopwords
-from nltk.stem.wordnet import WordNetLemmatizer
-from nltk.tokenize import word_tokenize
+from nltk.stem.snowball import SnowballStemmer
+from sklearn.feature_extraction.text import ENGLISH_STOP_WORDS
 
-nltk.download('punkt', quiet=True)
-nltk.download('punkt_tab', quiet=True)
-nltk.download('stopwords', quiet=True)
-nltk.download('wordnet', quiet=True)
-
-STOP_WORDS = set(stopwords.words('english'))
-LEMMATIZER = WordNetLemmatizer()
+TOKEN_PATTERN = re.compile(r"[a-z0-9]+")
+STEMMER = SnowballStemmer('english')
 
 
 def tokenize(text: str) -> List[str]:
-    """Tokenize, normalize, and lemmatize a text string.
+    """Tokenize, normalize, and stem a text string.
 
     Args:
         text: Raw text message to process.
 
     Returns:
-        List of cleaned, lemmatized tokens.
+        List of cleaned, stemmed tokens.
     """
-    text = re.sub(r"[^a-zA-Z0-9]", " ", text.lower())
-    words = word_tokenize(text)
+    # Regex tokenization, sklearn's bundled stop-word set, and Snowball
+    # stemming require no corpus downloads. Training and inference therefore
+    # use exactly the same text transform in offline environments.
+    words = TOKEN_PATTERN.findall(text.lower())
     return [
-        LEMMATIZER.lemmatize(w).strip()
-        for w in words
-        if w not in STOP_WORDS
+        STEMMER.stem(word)
+        for word in words
+        if word not in ENGLISH_STOP_WORDS
     ]
